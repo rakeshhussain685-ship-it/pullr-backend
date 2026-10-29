@@ -8,7 +8,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Only these sites are accepted, so the server cannot be used as an open proxy.
-ALLOWED = re.compile(r"^https?://([\w-]+\.)*(instagram\.com|youtube\.com|youtu\.be)/", re.I)
+ALLOWED = re.compile(r"^https?://([\w-]+\.)*(instagram\.com|youtube\.com|youtu\.be|facebook\.com|fb\.watch)/", re.I)
 IMAGE_KINDS = {"photo", "dp", "thumb"}
 
 
