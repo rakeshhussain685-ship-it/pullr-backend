@@ -14,12 +14,31 @@ IMAGE_KINDS = {"photo", "dp", "thumb"}
 
 def extract(url, kind):
     fmt = "bestaudio[ext=m4a]/bestaudio" if kind == "audio" else "best[ext=mp4]/best"
-    opts = {"quiet": True, "noplaylist": True, "format": fmt, "skip_download": True}
+    opts = {
+        "quiet": True,
+        "noplaylist": True,
+        "format": fmt,
+        "skip_download": True,
+        "extractor_retries": 2,
+        # Different YouTube player clients are blocked less often on server IPs.
+        "extractor_args": {"youtube": {"player_client": ["tv", "android_vr", "web_safari", "mweb"]}},
+    }
     cookies = os.environ.get("COOKIES_FILE")  # optional, helps with Instagram
     if cookies and os.path.exists(cookies):
         opts["cookiefile"] = cookies
     with yt_dlp.YoutubeDL(opts) as ydl:
         return ydl.extract_info(url, download=False)
+
+
+def friendly(e):
+    m = str(e).lower()
+    if "sign in" in m or "bot" in m or "cookies" in m:
+        return "YouTube is blocking this server right now. Try again later."
+    if "private" in m or "login" in m:
+        return "This post is private or needs a login."
+    if "unavailable" in m or "not available" in m:
+        return "This video is not available."
+    return "Could not fetch this link."
 
 
 def check(url):
@@ -41,8 +60,9 @@ def api():
         return jsonify(error="Unsupported link"), 400
     try:
         info = extract(url, kind)
-    except Exception:
-        return jsonify(error="Could not fetch this link"), 422
+    except Exception as e:
+        app.logger.error("extract failed for %s: %s", url, e)
+        return jsonify(error=friendly(e)), 422
 
     base = request.host_url.rstrip("/")
     q = urllib.parse.urlencode({"url": url, "type": kind})
